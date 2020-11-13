@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
-import half from '../index.js';
+import app from '../index.js';
 
-console.log(half(Number(process.argv[process.argv.length - 1])));
+// console.log(app(process.argv));
+console.log(process.cwd());

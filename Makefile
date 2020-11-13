@@ -1,7 +1,7 @@
 install: install-deps
 
 run:
-	bin/index.js 10
+	bin/index.js ${flag} ${path} ${url}
 
 install-deps:
 	npm ci
@@ -17,5 +17,8 @@ lint:
 
 publish:
 	npm publish
+
+install-local:
+	npm link
 
 .PHONY: test
