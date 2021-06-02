@@ -1,16 +1,27 @@
 // @ts-check
-import path from 'path';
+import axios from 'axios';
+import { appendFile } from 'fs/promises';
 
-const urlToHost = (url) => {
-  const { host, pathname, hash } = new URL(url);
+const urlToPath = (address) => {
+  const { host, pathname, hash } = new URL(address);
   return [host, pathname, hash].map((str) => str.replace(/\W/g, '-'))
     .join('');
 };
 
-export default (url, output = process.cwd()) => {
-  // do some magic
-  // return path for saved directory
-  /*
+export default (url, output) => axios.get(url)
+  .then((res) => res.data)
+  .then((data) => {
+    const filename = urlToPath(url);
+    const filepath = `${output}/${filename}.html`;
+    return appendFile(filepath, data).then(() => ['success', filepath]);
+  })
+  .catch((error) => {
+    const info = error.toJSON();
+    return ['error', info.message];
+  });
+// .catch((err) => console.error('Network error:', err.response.status));
+/*
+do some magic.
     1. Validate path. Throw error if incorrect.
     2. Make request to url. If url is incorrect - throw Error.
     3. Set delay for request. If > 4000 - reject request.
@@ -19,6 +30,3 @@ export default (url, output = process.cwd()) => {
     5. Save response in new dir.
     6. Return dir path.
   */
-  const newDir = urlToHost(url);
-  return path.resolve(output, newDir);
-};

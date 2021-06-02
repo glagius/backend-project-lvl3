@@ -1,9 +1,9 @@
-install: install-deps
+install: install
 
 run:
-	bin/index.js ${flag} ${path} ${url}
+	bin/page-loader.mjs ${flag} ${path} ${url}
 
-install-deps:
+install:
 	npm ci
 
 test:
