@@ -1,32 +1,62 @@
 // @ts-check
-import axios from 'axios';
-import { appendFile } from 'fs/promises';
+import cheerio from 'cheerio';
+import {
+  save, createPageFilename, getDataFromURL, createAssetsDirectory, isAbsolutePath, strToFilename,
+} from './src/utils';
+/**
+ * Saves files from "url" to "dirpath" directory
+ * @param {string} url
+ * @param {string} dirpath
+ */
+export default (url, dirpath) => {
+  try {
+    if (!/http.*/.test(url)) {
+      throw new Error(`Wrong url format: ${url}`);
+    }
+    const address = new URL(url);
+    const page = {
+      name: null,
+      dirpath: null,
+      content: null,
+      resourses: [],
+      resourcesDir: null,
+    };
 
-const urlToPath = (address) => {
-  const { host, pathname, hash } = new URL(address);
-  return [host, pathname, hash].map((str) => str.replace(/\W/g, '-'))
-    .join('');
+    return getDataFromURL(address.href)
+      .then((value) => {
+        // TODO: Add path parser for included files
+        // 0 - создать директорию для файлов. - DONE
+        // 1 - Разбить документы на элементы (скрипты, картинки, стили).
+        // 2 - Каждый элемент загрузить отдельно, создав ему адрес пути и имя файла.
+        // 3 - После каждого сохранения, вернуть модифицированный адрес
+        // 4 - Собрать новый документ.
+        page.name = createPageFilename(address);
+        page.dirpath = `${dirpath}/${page.name}.html`;
+        page.content = cheerio.load(value);
+
+        page.content('img').each(function() {
+          page.resourses.push({ tag: 'img', attr: 'src', link: page.content(this).attr('src') });
+        });
+        return createAssetsDirectory(dirpath, page.name);
+      })
+      .then((directory) => {
+        page.resourcesDir = directory;
+        const promises = page.resourses
+          .map(({ link }) => (isAbsolutePath(link) ? `${address.origin}${link}` : link))
+          .map((link) => getDataFromURL(link, 'arraybuffer'));
+        return Promise.all(promises);
+      })
+      .then((results) => page.resourses.map(({ link }, index) => {
+        const filepath = `${page.resourcesDir}/${strToFilename(link, address.host)}`;
+        return save(filepath, results[index]);
+      }))
+      .then((resources) => Promise.all(resources))
+      .then(() => page.resourses.forEach(({ tag, attr, link }) => {
+        const filepath = `${page.resourcesDir}/${strToFilename(link, address.host)}`;
+        page.content(`${tag}[${attr}=${link}]`).attr(attr, filepath);
+      }))
+      .then(() => save(page.dirpath, page.content.html()));
+  } catch (err) {
+    return Promise.reject(new Error(err.message || 'Wrong address'));
+  }
 };
-
-export default (url, output) => axios.get(url)
-  .then((res) => res.data)
-  .then((data) => {
-    const filename = urlToPath(url);
-    const filepath = `${output}/${filename}.html`;
-    return appendFile(filepath, data).then(() => ['success', filepath]);
-  })
-  .catch((error) => {
-    const info = error.toJSON();
-    return ['error', info.message];
-  });
-// .catch((err) => console.error('Network error:', err.response.status));
-/*
-do some magic.
-    1. Validate path. Throw error if incorrect.
-    2. Make request to url. If url is incorrect - throw Error.
-    3. Set delay for request. If > 4000 - reject request.
-    3. Parse response. If isn't 200, return.
-    4. Create dir for response files.
-    5. Save response in new dir.
-    6. Return dir path.
-  */

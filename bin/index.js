@@ -22,13 +22,14 @@ readFile(new URL('../package.json', import.meta.url))
       .arguments('<url>')
       .option('-o, --output <dir>', 'output directory (default: "/home/user/current-dir")')
       .action((url, { output }) => {
-        const dirpath = output ?? dirname;
-        return pageLoader(url, dirpath)
-          .then(([status, text]) => {
-            if (status === 'error') {
-              console.error(text);
-            }
-            console.log(text);
+        const directory = output ?? dirname;
+        return pageLoader(url, directory)
+          .then((filepath) => {
+            console.log(filepath);
+          })
+          .catch((err) => {
+            console.error(err);
+            process.exit(1);
           });
       })
       .parse(process.argv);
