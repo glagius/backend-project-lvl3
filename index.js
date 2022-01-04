@@ -34,8 +34,8 @@ export default (url, dirpath) => {
         page.dirpath = `${dirpath}/${page.name}.html`;
         page.content = cheerio.load(value);
 
-        page.content('img').each(function() {
-          page.resourses.push({ tag: 'img', attr: 'src', link: page.content(this).attr('src') });
+        page.content('img').each((_ind, el) => {
+          page.resourses.push({ tag: 'img', attr: 'src', link: page.content(el).attr('src') });
         });
         return createAssetsDirectory(dirpath, page.name);
       })

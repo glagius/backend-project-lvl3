@@ -32,6 +32,8 @@
     "cheerio": "^1.0.0-rc.9",
     "commander": "^7.2.0",
     "debug": "^4.1.1",
+    "husky": "^7.0.4",
+    "lint-staged": "^12.1.5",
     "lodash": "^4.17.20"
   },
   "devDependencies": {
@@ -43,5 +45,17 @@
     "eslint-plugin-jest": "^23.20.0",
     "jest": "^26.4.1",
     "nock": "^13.0.4"
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts}": [
+      "eslint . --fix",
+      "jest --bail —-findRelatedTests",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
   }
 }
