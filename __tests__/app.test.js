@@ -7,7 +7,7 @@ import * as fsPromises from 'fs/promises';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import app from '../src/index.js';
-import { strToFilename } from '../src/utils.js';
+import { createPageFilename, strToFilename } from '../src/utils.js';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -34,6 +34,7 @@ process.env.DEBUG = `nock.scope:${fakeHexlet.origin}`;
 
 describe('Test utils functions', () => {
   test('App modifies assets path', async () => {
+    const relativePaths = ['./assets/professions/nodejs.png', './assets/application.css'];
     const expectedAddresses = [
       'ru-hexlet-io-courses_files/ru-hexlet-io-assets-professions-nodejs.png',
       'ru-hexlet-io-courses_files/ru-hexlet-io-assets-application.css',
@@ -42,6 +43,13 @@ describe('Test utils functions', () => {
     ];
     assetsPaths.forEach((asset, ind) => expect(`${assetsDir}/${strToFilename(asset, fakeCourses.host)}`)
       .toEqual(expectedAddresses[ind]));
+    relativePaths.forEach((asset, ind) => expect(`${assetsDir}/${strToFilename(asset, fakeCourses.host)}`)
+      .toEqual(expectedAddresses[ind]));
+  });
+  test('App creates page filename from address', async () => {
+    const url = new URL('https://github.com');
+    const pageName = 'github-com';
+    expect(createPageFilename(url)).toBe(pageName);
   });
 });
 
@@ -73,8 +81,8 @@ describe('Test how app works with success http requests', () => {
 
   test('App return path to directory when page loaded', async () => {
     nock(fakeCourses.origin).get(fakeCourses.pathname).replyWithFile(200, `${dirname}/fixtures/courses.html`, fakeheaders);
-    const output = `${path.resolve(tmpdir, pathFromUrl)}.html`;
     const result = await app(fakeCourses.href, tmpdir);
+    const output = `${path.resolve(tmpdir, pathFromUrl)}.html`;
     expect(result).toEqual(output);
   });
 
@@ -117,10 +125,21 @@ describe('Negative test cases', () => {
     await fsPromises.rm(tmpdir, { recursive: true });
     nock.cleanAll();
   });
-
-  test('App shows error message when request fails', async () => {
+  test('App shows error message when got 404 statusCode', async () => {
     nock(fakeCourses.origin).get(fakeCourses.pathname).reply(404);
     await expect(app(fakeCourses.href, tmpdir)).rejects.toThrow('Request failed with status code 404');
+  });
+  test('App shows error message when got 302 statusCode', async () => {
+    nock(fakeCourses.origin).get(fakeCourses.pathname).reply(302);
+    await expect(app(fakeCourses.href, tmpdir)).rejects.toThrow('Request failed with status code 302');
+  });
+  test('App shows error message when got 500 statusCode', async () => {
+    nock(fakeCourses.origin).get(fakeCourses.pathname).reply(500);
+    await expect(app(fakeCourses.href, tmpdir)).rejects.toThrow('Request failed with status code 500');
+  });
+  test('App shows error message when got wrong directory for page', async () => {
+    await expect(app(fakeCourses.href)).rejects.toThrow('Wrong path for directory: undefined');
+    await expect(app(fakeCourses.href, '/sys')).rejects.toThrow('Failed to create assets directory in: /sys');
   });
   test('App shows error on wrong url address', async () => {
     await expect(app('some-stupid-address/', tmpdir)).rejects.toThrow();

@@ -26,7 +26,7 @@ AxiosLogger({
   },
 });
 
-const dasherize = (str) => str.replace(/\W/g, '-');
+const dasherize = (str) => str.replace(/\W$/g, '').replace(/\W/g, '-');
 const createFilename = (str) => str.replace(/\//gi, '-');
 /**
  * Converts 'https://some.domain.name/pathname' to format 'some-domain-name-pathname'
@@ -83,7 +83,11 @@ const strToFilename = (str, domain) => {
 * @param {('json' | 'text' | 'stream' | 'arraybuffer')=} responseType - one of axios types
 */
 const getDataFromURL = (url, responseType = 'json') => axios({ method: 'get', url, responseType })
-  .then((res) => res.data);
+  .then((res) => res.data)
+  .catch((err) => {
+    appLogger('Failed to download resource from link: %o', url);
+    throw new Error(`Failed to download resource from link: ${url} \n${err.message}`);
+  });
 
 /**
    * Saves file in given directory
@@ -91,7 +95,11 @@ const getDataFromURL = (url, responseType = 'json') => axios({ method: 'get', ur
    * @param {string} data - resources to save.
    */
 const save = (filepath, data) => appendFile(filepath, data)
-  .then(() => filepath);
+  .then(() => filepath)
+  .catch((err) => {
+    appLogger(`Failed to save data for filepath: ${filepath} \n${err.message}`);
+    throw new Error(`Failed to save data for filepath: ${filepath} \n${err.message}`);
+  });
 
 /**
  * Create directory for assets
@@ -101,7 +109,10 @@ const save = (filepath, data) => appendFile(filepath, data)
  */
 const createAssetsDirectory = (dirPath, pagename) => {
   const address = `${dirPath}/${pagename}_files`;
-  return mkdir(address).then(() => address);
+  return mkdir(address).then(() => address).catch((err) => {
+    appLogger(`Failed to create assets directory in: ${dirPath} \n${err.message}`);
+    throw new Error(`Failed to create assets directory in: ${dirPath} \n${err.message}`);
+  });
 };
 
 export {
@@ -112,5 +123,4 @@ export {
   createAssetsDirectory,
   isAbsolutePath,
   appLogger,
-  httpLogger,
 };

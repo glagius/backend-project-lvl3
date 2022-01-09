@@ -21,10 +21,4 @@ lint:
 publish:
 	npm publish
 
-install-local:
-	npm link
-
-build:
-	npm run build
-
 .PHONY: test

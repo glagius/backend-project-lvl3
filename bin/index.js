@@ -8,7 +8,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFile } from 'fs/promises';
 import pageLoader from '../src/index.js';
-import 'axios-debug-log/enable';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -21,7 +20,7 @@ readFile(new URL('../package.json', import.meta.url))
       .version(info.version, '-V, --version', 'output version number')
       .description('Page-loader utility.')
       .arguments('<url>')
-      .option('-o, --output <dir>', 'output directory (default: "/home/user/current-dir")')
+      .option('-o, --output <dir>', 'output directory (default: "/home/user/<current-directory>")')
       .action((url, { output }) => {
         const directory = output ?? dirname;
         return pageLoader(url, directory)

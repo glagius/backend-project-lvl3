@@ -9,7 +9,7 @@ import {
   isAbsolutePath,
   strToFilename,
   appLogger,
-} from './utils';
+} from './utils.js';
 
 /**
  * Saves files from "url" to "dirpath" directory
@@ -21,6 +21,9 @@ export default (url, dirpath) => {
   try {
     if (!/http.*/.test(url)) {
       throw new Error(`Wrong url format: ${url}`);
+    }
+    if (!dirpath) {
+      throw new Error(`Wrong path for directory: ${dirpath}`);
     }
     const address = new URL(url);
     const page = {
@@ -77,9 +80,13 @@ export default (url, dirpath) => {
       })
       .then((directory) => {
         page.resourcesDir = directory;
+        appLogger('Created assets directory: %o', directory);
         const modifyLink = (link) => (isAbsolutePath(link) ? `${address.origin}${link}` : link);
         const promises = page.resourses
-          .map(({ link }) => getDataFromURL(modifyLink(link), 'arraybuffer'));
+          .map(({ link }) => {
+            appLogger('Save resource from: %o', link);
+            return getDataFromURL(modifyLink(link), 'arraybuffer');
+          });
         return Promise.all(promises);
       })
       .then((results) => page.resourses.map(({ link }, index) => {
@@ -93,7 +100,8 @@ export default (url, dirpath) => {
         page.content(`${tag}[${attr}=${link}]`).attr(attr, filepath);
       }))
       .then(() => save(page.dirpath, page.content.html()));
-  } catch (err) {
-    return Promise.reject(new Error(err.message || 'Wrong address'));
+  } catch (error) {
+    appLogger(error.message);
+    return Promise.reject(error);
   }
 };
