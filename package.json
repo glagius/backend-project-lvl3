@@ -5,6 +5,7 @@
   "author": "Babaev Eldar",
   "homepage": "https://github.com/BabayevEldar/backend-project-lvl3#readme",
   "type": "module",
+  "main": "index.js",
   "bin": {
     "page-loader": "bin/index.js"
   },
@@ -13,7 +14,7 @@
   },
   "scripts": {
     "test": "npx -n '--experimental-vm-modules --no-warnings' jest --colors",
-    "test:watch": "npx -n '--experimental-vm-modules --no-warnings' jest --colors --watch"
+    "test:watch": "DEBUG=nock.scope:*,page-loader:* npx -n '--experimental-vm-modules --no-warnings' jest --colors --watch"
   },
   "repository": {
     "type": "git",
@@ -32,9 +33,10 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "axios-debug-log": "^0.8.4",
     "cheerio": "^1.0.0-rc.9",
     "commander": "^7.2.0",
-    "debug": "^4.1.1",
+    "debug": "^4.3.3",
     "husky": "^7.0.4",
     "lint-staged": "^12.1.5",
     "lodash": "^4.17.20"

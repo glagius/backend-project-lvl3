@@ -1,10 +1,10 @@
-install: install
-
-run:
-	bin/page-loader.mjs ${flag} ${path} ${url}
-
-install:
+setup:
 	npm ci
+
+link:
+	npm link
+
+start: setup link
 
 test:
 	npm test
@@ -23,5 +23,8 @@ publish:
 
 install-local:
 	npm link
+
+build:
+	npm run build
 
 .PHONY: test

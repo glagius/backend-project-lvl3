@@ -6,7 +6,7 @@ import nock from 'nock';
 import * as fsPromises from 'fs/promises';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import app from '../index.js';
+import app from '../src/index.js';
 import { strToFilename } from '../src/utils.js';
 
 const filename = fileURLToPath(import.meta.url);
@@ -29,6 +29,8 @@ const assets = [
   'application.css',
   'runtime.js',
 ];
+
+process.env.DEBUG = `nock.scope:${fakeHexlet.origin}`;
 
 describe('Test utils functions', () => {
   test('App modifies assets path', async () => {

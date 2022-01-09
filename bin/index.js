@@ -7,7 +7,8 @@ import { Command } from 'commander/esm.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFile } from 'fs/promises';
-import pageLoader from '../index.js';
+import pageLoader from '../src/index.js';
+import 'axios-debug-log/enable';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
