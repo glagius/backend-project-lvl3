@@ -1,5 +1,6 @@
 // @ts-check
 import cheerio from 'cheerio';
+import path from 'path';
 import {
   save, createPageFilename, getDataFromURL, createAssetsDirectory, isAbsolutePath, strToFilename,
 } from './src/utils';
@@ -34,16 +35,43 @@ export default (url, dirpath) => {
         page.dirpath = `${dirpath}/${page.name}.html`;
         page.content = cheerio.load(value);
 
-        page.content('img').each((_ind, el) => {
-          page.resourses.push({ tag: 'img', attr: 'src', link: page.content(el).attr('src') });
-        });
+        const shouldSaveResource = (link) => {
+          if (!/(png|css|js)$/.test(link)) {
+            return false;
+          }
+          if (!isAbsolutePath(link) && !link.includes(address.origin)) {
+            return false;
+          }
+          return true;
+        };
+
+        page.content('img')
+          .filter((_ind, el) => shouldSaveResource(page.content(el).attr('src')))
+          .each((_ind, el) => {
+            const link = page.content(el).attr('src');
+            page.resourses.push({ tag: 'img', attr: 'src', link });
+          });
+
+        page.content('link')
+          .filter((_ind, el) => shouldSaveResource(page.content(el).attr('href')))
+          .each((_ind, el) => {
+            const link = page.content(el).attr('href');
+            page.resourses.push({ tag: 'link', attr: 'href', link });
+          });
+
+        page.content('script')
+          .filter((_ind, el) => shouldSaveResource(page.content(el).attr('src')))
+          .each((_ind, el) => {
+            const link = page.content(el).attr('src');
+            page.resourses.push({ tag: 'script', attr: 'src', link });
+          });
         return createAssetsDirectory(dirpath, page.name);
       })
       .then((directory) => {
         page.resourcesDir = directory;
+        const modifyLink = (link) => (isAbsolutePath(link) ? `${address.origin}${link}` : link);
         const promises = page.resourses
-          .map(({ link }) => (isAbsolutePath(link) ? `${address.origin}${link}` : link))
-          .map((link) => getDataFromURL(link, 'arraybuffer'));
+          .map(({ link }) => getDataFromURL(modifyLink(link), 'arraybuffer'));
         return Promise.all(promises);
       })
       .then((results) => page.resourses.map(({ link }, index) => {
@@ -52,7 +80,8 @@ export default (url, dirpath) => {
       }))
       .then((resources) => Promise.all(resources))
       .then(() => page.resourses.forEach(({ tag, attr, link }) => {
-        const filepath = `${page.resourcesDir}/${strToFilename(link, address.host)}`;
+        const relativeFolder = page.resourcesDir.split(path.sep).reverse()[0];
+        const filepath = `${relativeFolder}/${strToFilename(link, address.host)}`;
         page.content(`${tag}[${attr}=${link}]`).attr(attr, filepath);
       }))
       .then(() => save(page.dirpath, page.content.html()));

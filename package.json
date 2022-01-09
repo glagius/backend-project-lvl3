@@ -25,7 +25,10 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "transform": {}
+    "transform": {},
+    "modulePathIgnorePatterns": [
+      "fixtures/"
+    ]
   },
   "dependencies": {
     "axios": "^0.21.1",
