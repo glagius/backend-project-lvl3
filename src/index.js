@@ -21,7 +21,7 @@ export default (url, dirpath) => {
   appLogger('Running');
   try {
     if (!/http.*/.test(url)) {
-      throw new Error(`Wrong url format: ${url}`);
+      throw new URIError(`Wrong url format: ${url}`);
     }
     if (!dirpath) {
       throw new Error(`Wrong path for directory: ${dirpath}`);
