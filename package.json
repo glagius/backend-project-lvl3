@@ -39,6 +39,7 @@
     "debug": "^4.3.3",
     "husky": "^7.0.4",
     "lint-staged": "^12.1.5",
+    "listr": "^0.14.3",
     "lodash": "^4.17.20"
   },
   "devDependencies": {

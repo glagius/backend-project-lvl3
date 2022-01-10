@@ -25,7 +25,7 @@ readFile(new URL('../package.json', import.meta.url))
         const directory = output ?? dirname;
         return pageLoader(url, directory)
           .then((filepath) => {
-            console.log(filepath);
+            console.log(`Page was successfully downloaded into ${filepath}`);
           })
           .catch((err) => {
             console.error(err);

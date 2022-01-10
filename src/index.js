@@ -1,6 +1,7 @@
 // @ts-check
 import cheerio from 'cheerio';
 import path from 'path';
+import Listr from 'listr';
 import {
   save,
   createPageFilename,
@@ -80,19 +81,28 @@ export default (url, dirpath) => {
       })
       .then((directory) => {
         page.resourcesDir = directory;
+
         appLogger('Created assets directory: %o', directory);
         const modifyLink = (link) => (isAbsolutePath(link) ? `${address.origin}${link}` : link);
-        const promises = page.resourses
-          .map(({ link }) => {
-            appLogger('Save resource from: %o', link);
-            return getDataFromURL(modifyLink(link), 'arraybuffer');
-          });
-        return Promise.all(promises);
+        const assets = new Map();
+
+        page.resourses.forEach(({ link }) => assets.set(link, null));
+
+        const tasks = page.resourses.map(({ link }) => ({
+          title: `Downloading resource for: ${link}`,
+          task: () => getDataFromURL(modifyLink(link), 'arraybuffer').then((data) => assets.set(link, data)),
+        }));
+        const queue = new Listr(tasks, { concurrent: true });
+
+        return queue.run().then(() => assets);
       })
-      .then((results) => page.resourses.map(({ link }, index) => {
-        const filepath = `${page.resourcesDir}/${strToFilename(link, address.host)}`;
-        return save(filepath, results[index]);
-      }))
+      .then((assets) => {
+        appLogger('Saved assets: %o', assets);
+        return page.resourses.map(({ link }) => {
+          const filepath = `${page.resourcesDir}/${strToFilename(link, address.host)}`;
+          return save(filepath, assets.get(link));
+        });
+      })
       .then((resources) => Promise.all(resources))
       .then(() => page.resourses.forEach(({ tag, attr, link }) => {
         const relativeFolder = page.resourcesDir.split(path.sep).reverse()[0];

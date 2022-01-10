@@ -27,7 +27,8 @@ AxiosLogger({
 });
 
 const dasherize = (str) => str.replace(/\W$/g, '').replace(/\W/g, '-');
-const createFilename = (str) => str.replace(/\//gi, '-');
+const modifyFilePath = (str) => str.replace(/\//gi, '-');
+
 /**
  * Converts 'https://some.domain.name/pathname' to format 'some-domain-name-pathname'
  * @param {URL} address
@@ -69,12 +70,12 @@ const strToFilename = (str, domain) => {
     const address = new URL(str);
     const { pathname, hash } = address;
     const modifiedDomain = dasherize(domain);
-    return createFilename(`${modifiedDomain}${pathname}${hash}`);
+    return modifyFilePath(`${modifiedDomain}${pathname}${hash}`);
   }
   const rx = /\/\w+\S+/gi;
   const modifiedDomain = dasherize(domain);
   const trimmedAssetsPath = str.match(rx)[0];
-  return createFilename(`${modifiedDomain}${trimmedAssetsPath}`);
+  return modifyFilePath(`${modifiedDomain}${trimmedAssetsPath}`);
 };
 
 /**
@@ -82,13 +83,15 @@ const strToFilename = (str, domain) => {
 * @param {string} url - valid url for data
 * @param {('json' | 'text' | 'stream' | 'arraybuffer')=} responseType - one of axios types
 */
-const getDataFromURL = (url, responseType = 'json') => axios({ method: 'get', url, responseType })
-  .then((res) => res.data)
-  .catch((err) => {
-    appLogger('Failed to download resource from link: %o', url);
-    throw new Error(`Failed to download resource from link: ${url} \n${err.message}`);
-  });
-
+const getDataFromURL = (url, responseType = 'json') => {
+  appLogger('Save resource from: %o', url);
+  return axios({ method: 'get', url, responseType })
+    .then((res) => res.data)
+    .catch((err) => {
+      appLogger('Failed to download resource from link: %o', url);
+      throw new Error(`Failed to download resource from link: ${url} \n${err.message}`);
+    });
+};
 /**
    * Saves file in given directory
    * @param {string} filepath - directory for file
