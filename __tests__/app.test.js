@@ -93,7 +93,7 @@ describe('Test how app works with success http requests', () => {
     expect(directory).toContain(assetsDir);
   });
 
-  test.only('App saves files into created directory', async () => {
+  test('App saves files into created directory', async () => {
     await app(fakeCourses.href, tmpdir);
     const page = await fsPromises.readFile(`${tmpdir}/${pathFromUrl}.html`, 'utf8');
     const directory = await fsPromises.readdir(`${tmpdir}/${assetsDir}`);
