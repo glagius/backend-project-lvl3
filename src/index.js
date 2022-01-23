@@ -48,9 +48,6 @@ export default (url, dirpath) => {
         page.content = cheerio.load(value);
 
         const shouldSaveResource = (link) => {
-          if (!/(png|css|js)$/.test(link)) {
-            return false;
-          }
           if (!isAbsolutePath(link) && !link.includes(address.origin)) {
             return false;
           }
@@ -83,14 +80,14 @@ export default (url, dirpath) => {
         page.resourcesDir = directory;
 
         appLogger('Created assets directory: %o', directory);
-        const modifyLink = (link) => (isAbsolutePath(link) ? `${address.origin}${link}` : link);
+        const modifiedLink = (link) => (isAbsolutePath(link) ? `${address.origin}${link}` : link);
         const assets = new Map();
 
         page.resourses.forEach(({ link }) => assets.set(link, null));
 
         const tasks = page.resourses.map(({ link }) => ({
           title: `Downloading resource for: ${link}`,
-          task: () => getDataFromURL(modifyLink(link), 'arraybuffer').then((data) => assets.set(link, data)),
+          task: () => getDataFromURL(modifiedLink(link)).then((data) => assets.set(link, data)),
         }));
         const queue = new Listr(tasks, { concurrent: true });
 

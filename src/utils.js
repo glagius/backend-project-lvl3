@@ -59,6 +59,8 @@ const isFullLink = (link) => {
  * @returns {boolean}
 */
 const isAbsolutePath = (link) => path.isAbsolute(link);
+
+const isBinaryFilePath = (link) => /(png|css|js)$/.test(link);
 /**
  * Converts 'https://ru.hexlet.io/packs/js/runtime.js' to filename
  * @param {string} str - path to remote file.
@@ -66,24 +68,27 @@ const isAbsolutePath = (link) => path.isAbsolute(link);
  * @returns {string}
  */
 const strToFilename = (str, domain) => {
+  let filepath;
   if (isFullLink(str)) {
     const address = new URL(str);
     const { pathname, hash } = address;
     const modifiedDomain = dasherize(domain);
-    return modifyFilePath(`${modifiedDomain}${pathname}${hash}`);
+    filepath = modifyFilePath(`${modifiedDomain}${pathname}${hash}`);
+  } else {
+    const rx = /\/\w+\S+/gi;
+    const modifiedDomain = dasherize(domain);
+    const trimmedAssetsPath = str.match(rx)[0];
+    filepath = modifyFilePath(`${modifiedDomain}${trimmedAssetsPath}`);
   }
-  const rx = /\/\w+\S+/gi;
-  const modifiedDomain = dasherize(domain);
-  const trimmedAssetsPath = str.match(rx)[0];
-  return modifyFilePath(`${modifiedDomain}${trimmedAssetsPath}`);
+  return path.extname(filepath) ? filepath : `${filepath}.html`;
 };
 
 /**
 * Request data from address
 * @param {string} url - valid url for data
-* @param {('json' | 'text' | 'stream' | 'arraybuffer')=} responseType - one of axios types
 */
-const getDataFromURL = (url, responseType = 'json') => {
+const getDataFromURL = (url) => {
+  const responseType = isBinaryFilePath(url) ? 'arraybuffer' : 'json';
   appLogger('Save resource from: %o', url);
   return axios({ method: 'get', url, responseType })
     .then((res) => res.data)
