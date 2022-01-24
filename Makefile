@@ -1,10 +1,10 @@
-setup:
+install:
 	npm ci
 
 link:
 	npm link
 
-start: setup link
+setup: install link
 
 test:
 	npm test

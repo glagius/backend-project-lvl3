@@ -31,7 +31,7 @@ jobs:
       - name: npm install, build
         # Install and build project
         run: |
-          make setup
+          make install
         # Add environment variables
         env:
           CI: true
