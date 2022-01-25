@@ -22,7 +22,11 @@ export default (url, dirpath, log) => {
     if (!/http.*/.test(url)) {
       throw new URIError(`Wrong url format: ${url}`);
     }
-    const address = new URL(url);
+    const location = new URL(url);
+
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      throw new URIError('Expects remote host');
+    }
     const page = {
       name: null,
       dirpath: null,
@@ -31,7 +35,7 @@ export default (url, dirpath, log) => {
       resourcesDir: null,
     };
 
-    return getDataFromURL(address.href)
+    return getDataFromURL(location.href)
       .then((value) => {
         // TODO: Add path parser for included files
         // 0 - создать директорию для файлов. - DONE
@@ -39,12 +43,12 @@ export default (url, dirpath, log) => {
         // 2 - Каждый элемент загрузить отдельно, создав ему адрес пути и имя файла.
         // 3 - После каждого сохранения, вернуть модифицированный адрес
         // 4 - Собрать новый документ.
-        page.name = createPageFilename(address);
+        page.name = createPageFilename(location);
         page.dirpath = `${dirpath}/${page.name}.html`;
         page.content = cheerio.load(value);
 
         const shouldSaveResource = (link) => {
-          if (!isAbsolutePath(link) && !link.includes(address.origin)) {
+          if (!isAbsolutePath(link) && !link.includes(location.origin)) {
             return false;
           }
           return true;
@@ -76,7 +80,7 @@ export default (url, dirpath, log) => {
         page.resourcesDir = directory;
 
         log('Created assets directory: %o', directory);
-        const modifiedLink = (link) => (isAbsolutePath(link) ? `${address.origin}${link}` : link);
+        const modifiedLink = (link) => (isAbsolutePath(link) ? `${location.origin}${link}` : link);
         const assets = new Map();
 
         page.resourses.forEach(({ link }) => assets.set(link, null));
@@ -92,14 +96,14 @@ export default (url, dirpath, log) => {
       .then((assets) => {
         log('Saved assets: %o', assets);
         return page.resourses.map(({ link }) => {
-          const filepath = `${page.resourcesDir}/${strToFilename(link, address.host)}`;
+          const filepath = `${page.resourcesDir}/${strToFilename(link, location.host)}`;
           return save(filepath, assets.get(link));
         });
       })
       .then((resources) => Promise.all(resources))
       .then(() => page.resourses.forEach(({ tag, attr, link }) => {
         const relativeFolder = page.resourcesDir.split(path.sep).reverse()[0];
-        const filepath = `${relativeFolder}/${strToFilename(link, address.host)}`;
+        const filepath = `${relativeFolder}/${strToFilename(link, location.host)}`;
         page.content(`${tag}[${attr}=${link}]`).attr(attr, filepath);
       }))
       .then(() => save(page.dirpath, page.content.html()));

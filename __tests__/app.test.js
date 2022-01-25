@@ -123,6 +123,7 @@ describe('App tests:', () => {
     });
     test('App shows error on wrong url address', async () => {
       await expect(app('some-stupid-address/', tmpdir)).rejects.toThrow();
+      await expect(app('http://localhost/blog/main/', tmpdir)).rejects.toThrow();
     });
   });
 
