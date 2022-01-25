@@ -6,7 +6,7 @@ import nock from 'nock';
 import * as fsPromises from 'fs/promises';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import app from '../src/index.js';
+import app from '../index.js';
 import { createPageFilename, strToFilename } from '../src/utils.js';
 
 describe('App tests:', () => {
@@ -119,7 +119,6 @@ describe('App tests:', () => {
       contents.forEach((el, index) => expect(fixturesContent[index].equals(el)).toBe(true));
     });
     test('App shows error message when got wrong directory for page', async () => {
-      await expect(app(fakeCourses.href)).rejects.toThrow('Wrong path for directory: undefined');
       await expect(app(fakeCourses.href, '/sys')).rejects.toThrow('Failed to create assets directory in: /sys');
     });
     test('App shows error on wrong url address', async () => {
