@@ -9,6 +9,7 @@ import {
   createAssetsDirectory,
   isAbsolutePath,
   strToFilename,
+  appLogger,
 } from './utils.js';
 
 /**
@@ -16,8 +17,8 @@ import {
  * @param {string} url
  * @param {string} dirpath
  */
-export default (url, dirpath, log) => {
-  log('Running');
+export default (url, dirpath) => {
+  appLogger('Running');
   try {
     if (!/http.*/.test(url)) {
       throw new URIError(`Wrong url format: ${url}`);
@@ -79,7 +80,7 @@ export default (url, dirpath, log) => {
       .then((directory) => {
         page.resourcesDir = directory;
 
-        log('Created assets directory: %o', directory);
+        appLogger('Created assets directory: %o', directory);
         const modifiedLink = (link) => (isAbsolutePath(link) ? `${location.origin}${link}` : link);
         const assets = new Map();
 
@@ -94,7 +95,7 @@ export default (url, dirpath, log) => {
         return queue.run().then(() => assets);
       })
       .then((assets) => {
-        log('Saved assets: %o', assets);
+        appLogger('Saved assets: %o', assets);
         return page.resourses.map(({ link }) => {
           const filepath = `${page.resourcesDir}/${strToFilename(link, location.host)}`;
           return save(filepath, assets.get(link));
@@ -108,7 +109,7 @@ export default (url, dirpath, log) => {
       }))
       .then(() => save(page.dirpath, page.content.html()));
   } catch (error) {
-    log(error.message);
+    appLogger(error.message);
     return Promise.reject(error);
   }
 };
