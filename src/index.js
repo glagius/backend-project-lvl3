@@ -24,10 +24,6 @@ export default (url, dirpath) => {
       throw new URIError(`Wrong url format: ${url}`);
     }
     const location = new URL(url);
-
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      throw new URIError('Expects remote host');
-    }
     const page = {
       name: null,
       dirpath: null,
