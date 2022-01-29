@@ -57,8 +57,6 @@ describe('App tests:', () => {
       expect(createPageFilename(url)).toBe(pageName);
     });
   });
-  // TODO: Add saving link to current page into html
-  // Check if it has canonical tag - save current page
   describe('Test how app works with success http requests', () => {
     const assetsRx = /(png|css|js)$/;
 

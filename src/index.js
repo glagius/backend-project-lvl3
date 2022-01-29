@@ -9,7 +9,6 @@ import {
   createAssetsDirectory,
   isAbsolutePath,
   strToFilename,
-  appLogger,
 } from './utils.js';
 
 /**
@@ -17,95 +16,84 @@ import {
  * @param {string} url
  * @param {string} dirpath
  */
-export default (url, dirpath) => {
-  appLogger('Running');
-  try {
-    if (!/http.*/.test(url)) {
-      throw new URIError(`Wrong url format: ${url}`);
-    }
-    const location = new URL(url);
-    const page = {
-      name: null,
-      dirpath: null,
-      content: null,
-      resourses: [],
-      resourcesDir: null,
-    };
+export default (url, dirpath, logger) => {
+  logger('Application running');
+  if (!/http.*/.test(url)) {
+    return Promise.reject(new URIError(`Wrong url format: ${url}`));
+  }
+  const location = new URL(url);
+  const page = {
+    name: null,
+    dirpath: null,
+    content: null,
+    resourses: [],
+    resourcesDir: null,
+  };
 
-    return getDataFromURL(location.href)
-      .then((value) => {
-        // TODO: Add path parser for included files
-        // 0 - создать директорию для файлов. - DONE
-        // 1 - Разбить документы на элементы (скрипты, картинки, стили).
-        // 2 - Каждый элемент загрузить отдельно, создав ему адрес пути и имя файла.
-        // 3 - После каждого сохранения, вернуть модифицированный адрес
-        // 4 - Собрать новый документ.
-        page.name = createPageFilename(location);
-        page.dirpath = `${dirpath}/${page.name}.html`;
-        page.content = cheerio.load(value);
+  logger('Save resource from : %s', location.href);
 
-        const shouldSaveResource = (link) => {
-          if (!isAbsolutePath(link) && !link.includes(location.origin)) {
-            return false;
-          }
-          return true;
-        };
+  return getDataFromURL(location.href)
+    .then((value) => {
+      page.name = createPageFilename(location);
+      page.dirpath = `${dirpath}/${page.name}.html`;
+      page.content = cheerio.load(value);
 
-        page.content('img')
-          .filter((_ind, el) => shouldSaveResource(page.content(el).attr('src')))
+      const shouldSaveResource = (link) => {
+        if (!isAbsolutePath(link) && !link.includes(location.origin)) {
+          return false;
+        }
+        return true;
+      };
+
+      const tags = ['img', 'link', 'script'];
+      const attributesMapping = {
+        img: 'src',
+        link: 'href',
+        script: 'src',
+      };
+
+      tags.forEach((tag) => {
+        const attribute = attributesMapping[tag];
+        page.content(tag)
+          .filter((_ind, el) => shouldSaveResource(page.content(el).attr(attribute)))
           .each((_ind, el) => {
-            const link = page.content(el).attr('src');
-            page.resourses.push({ tag: 'img', attr: 'src', link });
+            const link = page.content(el).attr(attribute);
+            page.resourses.push({ tag, attr: attribute, link });
           });
+      });
+      return createAssetsDirectory(dirpath, page.name);
+    })
+    .then((directory) => {
+      page.resourcesDir = directory;
 
-        page.content('link')
-          .filter((_ind, el) => shouldSaveResource(page.content(el).attr('href')))
-          .each((_ind, el) => {
-            const link = page.content(el).attr('href');
-            page.resourses.push({ tag: 'link', attr: 'href', link });
-          });
+      logger('Created assets directory: %o', directory);
+      const modifiedLink = (link) => (isAbsolutePath(link) ? `${location.origin}${link}` : link);
+      const assets = new Map();
 
-        page.content('script')
-          .filter((_ind, el) => shouldSaveResource(page.content(el).attr('src')))
-          .each((_ind, el) => {
-            const link = page.content(el).attr('src');
-            page.resourses.push({ tag: 'script', attr: 'src', link });
-          });
-        return createAssetsDirectory(dirpath, page.name);
-      })
-      .then((directory) => {
-        page.resourcesDir = directory;
+      page.resourses.forEach(({ link }) => assets.set(link, null));
 
-        appLogger('Created assets directory: %o', directory);
-        const modifiedLink = (link) => (isAbsolutePath(link) ? `${location.origin}${link}` : link);
-        const assets = new Map();
+      const tasks = page.resourses.map(({ link }) => ({
+        title: `Downloading resource for: ${link}`,
+        task: () => getDataFromURL(modifiedLink(link)).then((data) => assets.set(link, data)),
+      }));
+      const queue = new Listr(tasks, { concurrent: true });
 
-        page.resourses.forEach(({ link }) => assets.set(link, null));
-
-        const tasks = page.resourses.map(({ link }) => ({
-          title: `Downloading resource for: ${link}`,
-          task: () => getDataFromURL(modifiedLink(link)).then((data) => assets.set(link, data)),
-        }));
-        const queue = new Listr(tasks, { concurrent: true });
-
-        return queue.run().then(() => assets);
-      })
-      .then((assets) => {
-        appLogger('Saved assets: %o', assets);
-        return page.resourses.map(({ link }) => {
-          const filepath = `${page.resourcesDir}/${strToFilename(link, location.host)}`;
-          return save(filepath, assets.get(link));
-        });
-      })
-      .then((resources) => Promise.all(resources))
-      .then(() => page.resourses.forEach(({ tag, attr, link }) => {
+      return queue.run().then(() => assets);
+    })
+    .then((assets) => {
+      logger('Saved assets: %o', assets);
+      const promises = page.resourses.map(({ link }) => {
+        const filepath = `${page.resourcesDir}/${strToFilename(link, location.host)}`;
+        return save(filepath, assets.get(link));
+      });
+      return Promise.all(promises);
+    })
+    .then(() => {
+      page.resourses.forEach(({ tag, attr, link }) => {
         const relativeFolder = page.resourcesDir.split(path.sep).reverse()[0];
         const filepath = `${relativeFolder}/${strToFilename(link, location.host)}`;
         page.content(`${tag}[${attr}=${link}]`).attr(attr, filepath);
-      }))
-      .then(() => save(page.dirpath, page.content.html()));
-  } catch (error) {
-    appLogger(error.message);
-    return Promise.reject(error);
-  }
+      });
+      return save(page.dirpath, page.content.html());
+    });
 };

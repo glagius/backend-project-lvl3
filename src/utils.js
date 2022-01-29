@@ -2,29 +2,6 @@
 import axios from 'axios';
 import { appendFile, mkdir } from 'fs/promises';
 import path from 'path';
-import Debug from 'debug';
-import AxiosLogger from 'axios-debug-log';
-
-const appLogger = Debug('page-loader:app');
-const httpLogger = Debug('page-loader:http');
-const httpErrorLogger = Debug('page-loader:http-error');
-
-AxiosLogger({
-  request: (_deb, config) => {
-    const { url, method, headers } = config;
-    httpLogger('Request to: %o, \nMethod: %o, \nHeaders: %o', url, method, headers);
-  },
-  response: (_deb, response) => {
-    const {
-      status, statusText, headers, config: { url, method },
-    } = response;
-    httpLogger('Response from: %o \nMethod: %o \nStatus: %o \nStatusText: %o \nHeaders: %o', url, method, status, statusText, headers);
-  },
-  error: (_deb, error) => {
-    const { response: { status, data }, message } = error;
-    httpErrorLogger('Error: %o, Status: %o, ErrorData: %o', message, status, data);
-  },
-});
 
 const dasherize = (str) => str.replace(/\W$/g, '').replace(/\W/g, '-');
 const modifyFilePath = (str) => str.replace(/\//gi, '-');
@@ -89,11 +66,9 @@ const strToFilename = (str, domain) => {
 */
 const getDataFromURL = (url) => {
   const responseType = isBinaryFilePath(url) ? 'arraybuffer' : 'json';
-  appLogger('Save resource from: %o', url);
   return axios({ method: 'get', url, responseType })
     .then((res) => res.data)
     .catch((err) => {
-      appLogger('Failed to download resource from link: %o', url);
       throw new Error(`Failed to download resource from link: ${url} \n${err.message}`);
     });
 };
@@ -105,7 +80,6 @@ const getDataFromURL = (url) => {
 const save = (filepath, data) => appendFile(filepath, data)
   .then(() => filepath)
   .catch((err) => {
-    appLogger(`Failed to save data for filepath: ${filepath} \n${err.message}`);
     throw new Error(`Failed to save data for filepath: ${filepath} \n${err.message}`);
   });
 
@@ -117,10 +91,10 @@ const save = (filepath, data) => appendFile(filepath, data)
  */
 const createAssetsDirectory = (dirPath, pagename) => {
   const address = `${dirPath}/${pagename}_files`;
-  return mkdir(address).then(() => address).catch((err) => {
-    appLogger(`Failed to create assets directory in: ${dirPath} \n${err.message}`);
-    throw new Error(`Failed to create assets directory in: ${dirPath} \n${err.message}`);
-  });
+  return mkdir(address).then(() => address)
+    .catch((err) => {
+      throw new Error(`Failed to create assets directory in: ${dirPath} \n${err.message}`);
+    });
 };
 
 export {
@@ -130,5 +104,4 @@ export {
   createPageFilename,
   createAssetsDirectory,
   isAbsolutePath,
-  appLogger,
 };
